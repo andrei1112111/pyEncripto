@@ -106,5 +106,3 @@ my_project_crpt/
 - Ключ хранится только в памяти, но может быть извлечён во время выполнения.
 
 ---
-
-https://thecode.media/new-python-lib/
