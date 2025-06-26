@@ -10,6 +10,7 @@ and assets (e.g., PNGs, audio files) into a secure output directory.
 
 This structure allows later secure loading and runtime decryption of both code and resources.
 """
+from .dotpac import build_pak
 
 import os, base64, json
 from pathlib import Path
@@ -98,15 +99,4 @@ def encrypt_project(src: Path, dst: Path, password: str):
         out.write_bytes(encrypt(f.read_bytes(), key))
 
     # --- Encrypt assets into JSON database ---
-    asset_dir = src / "assets"
-    pak = {}
-    if asset_dir.exists():
-        for f in asset_dir.rglob("*.*"):
-            rel = f.relative_to(asset_dir)
-            data = encrypt(f.read_bytes(), key)
-
-            name = name_key(str(rel), key)  # Deterministic hashed name
-            pak[name] = base64.b64encode(data).decode()
-
-    # Save asset pack
-    (dst / "assets.pak").write_text(json.dumps(pak))
+    build_pak(encrypt, key, src / "assets", dst / "assets.pak")
