@@ -61,13 +61,20 @@ def main():
         mod.__file__ = str(path / "main.crpt")
         sys.modules["main"] = mod
 
-        # Inject runtime asset loader into module scope
-        mod.PYENCRIPTO_load_asset = secure_runtime.load_asset
+        # Inject runtime secure_runtime instead of pyEncripto
+        # ⬇ Подменяем pyEncripto "заглушку" на реальную реализацию
+        runtime_pyEncripto = types.ModuleType("pyEncripto")
+        runtime_pyEncripto.init = secure_runtime.init_data_reader
+        runtime_pyEncripto.data_reader = secure_runtime.data_reader
+        sys.modules["pyEncripto"] = runtime_pyEncripto
 
         mod.USED_PYENCRIPTO = True
 
         # Run the decrypted code inside the `main` module's namespace
         exec(code, mod.__dict__)
+
+        secure_runtime.init_data_reader()
+        sys.modules["pyEncripto"].data_reader = secure_runtime.data_reader
 
         # If a `main()` function is defined, call it
         if hasattr(mod, "main"):
