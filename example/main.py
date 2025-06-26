@@ -2,6 +2,8 @@ from modules import logic
 from io import BytesIO
 import pygame
 
+import pyEncripto
+
 
 try:
     USED_PYENCRIPTO
@@ -16,7 +18,7 @@ def main():
     
     # Загружаем и масштабируем героя
     if USED_PYENCRIPTO:
-        raw_image = pygame.image.load(BytesIO(PYENCRIPTO_load_asset("hero.png"))).convert_alpha()
+        raw_image = pygame.image.load(pyEncripto.data_reader["hero.png"]).convert_alpha()
     else:
         raw_image = pygame.image.load("assets/hero.png").convert_alpha()
     hero = pygame.transform.scale(raw_image, (64, 64))
