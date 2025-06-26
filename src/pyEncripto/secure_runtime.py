@@ -8,6 +8,7 @@ This module provides runtime support for executing encrypted Python projects:
 
 Used during execution of projects encrypted with PyEncripto.
 """
+from .dotpac import PakReader
 
 import sys, base64, json
 from pathlib import Path
@@ -62,7 +63,6 @@ def decrypt_file(fpath: Path) -> bytes:
     """
     return decrypt_bytes(fpath.read_bytes(), _get_key())
 
-
 # ====== ENCRYPTED MODULE LOADER ======
 
 class EncryptedModuleLoader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
@@ -106,8 +106,8 @@ def enable_encrypted_imports(base_dir: str):
 
 
 # ====== ASSET LOADER ======
+data_reader = None
 
-RESOURCE_DB = {}  # Cached decoded asset map
 _BASE_PATH = None  # Path to encrypted project root
 
 def set_base_path(path):
@@ -117,32 +117,17 @@ def set_base_path(path):
     global _BASE_PATH
     _BASE_PATH = Path(path).resolve()
 
-def load_asset(path: str) -> bytes:
+
+def init_data_reader():
     """
-    Decrypts and returns the contents of an asset from the assets.pak bundle.
-
-    Args:
-        path (str): Relative path of the asset inside the original project.
-
-    Returns:
-        bytes: Decrypted asset content.
+    Initialise .pac data reader.
     """
-    global RESOURCE_DB, _BASE_PATH
-    if not RESOURCE_DB:
-        if _BASE_PATH is None:
-            raise RuntimeError("Base path for assets not set. Call set_base_path(path) first.")
+    if _BASE_PATH is None:
+        raise RuntimeError("Base path for assets not set. cli.py must use set_base_path(path) first.")
 
-        # Load encrypted asset bundle
-        pak = _BASE_PATH / "assets.pak"
-        raw = json.loads(pak.read_text())
+    global data_reader
 
-        # Decrypt and cache each entry
-        for name, enc_b64 in raw.items():
-            RESOURCE_DB[name] = decrypt_bytes(base64.b64decode(enc_b64), _get_key())
+    data_dir = Path(_BASE_PATH)
+    datafile = list(data_dir.rglob("*.pak"))[0]
 
-    # Compute hashed name and return decrypted data
-    name = name_key(path, _get_key())
-    if name not in RESOURCE_DB:
-        raise FileNotFoundError(f"Encrypted asset not found: {path}")
-    
-    return RESOURCE_DB[name]
+    data_reader = PakReader(decrypt_bytes, _get_key(), datafile)
